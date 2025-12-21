@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Site Blocked</title>
+    <link rel="stylesheet" href="blocked.css">
+</head>
+
+<body>
+    <div class="container">
+        <div class="blocked-card">
+            <div class="icon">🛡️</div>
+            <h1>Site Blocked</h1>
+            <p class="url-text">You tried to access:</p>
+            <div class="blocked-url" id="blockedUrl">loading...</div>
+
+            <div class="unblock-section">
+                <h2>Want to unblock?</h2>
+                <p class="instruction">Enter a reason to continue. This will be saved for accountability.</p>
+
+                <textarea id="reasonInput" placeholder="Why do you need to access this site right now?"
+                    rows="3"></textarea>
+
+                <button id="unblockBtn" class="btn-unblock" disabled>
+                    Unblock & Continue
+                </button>
+
+                <button id="goBackBtn" class="btn-back">
+                    ← Go Back (Stay Focused)
+                </button>
+            </div>
+        </div>
+
+        <div class="motivation">
+            <p>"The secret of getting ahead is getting started." – Mark Twain</p>
+        </div>
+    </div>
+
+    <script src="blocked.js"></script>
+</body>
+
+</html>

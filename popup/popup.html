@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Site Blocker</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <h1>🛡️ Site Blocker</h1>
+      <p class="subtitle">Block sites with timed unblock</p>
+    </header>
+
+    <section class="add-site">
+      <div class="input-row">
+        <input type="text" id="urlInput" placeholder="Enter domain (e.g., youtube.com)">
+      </div>
+      <div class="input-row">
+        <div class="duration-group">
+          <label>Unblock duration:</label>
+          <select id="durationSelect">
+            <option value="2">2 min</option>
+            <option value="5">5 min</option>
+            <option value="10" selected>10 min</option>
+            <option value="15">15 min</option>
+            <option value="30">30 min</option>
+            <option value="60">1 hour</option>
+          </select>
+        </div>
+        <button id="addBtn" class="btn-primary">
+          <span>+</span> Add
+        </button>
+      </div>
+    </section>
+
+    <section class="tabs">
+      <button class="tab active" data-tab="sites">My Sites</button>
+      <button class="tab" data-tab="history">Unblock History</button>
+    </section>
+
+    <section id="sites-tab" class="tab-content active">
+      <ul id="sitesList" class="site-list"></ul>
+      <p id="emptyMessage" class="empty-message">No sites added yet</p>
+    </section>
+
+    <section id="history-tab" class="tab-content">
+      <ul id="historyList" class="history-list"></ul>
+      <p id="emptyHistoryMessage" class="empty-message">No unblock history</p>
+    </section>
+  </div>
+
+  <!-- Reason Modal -->
+  <div id="reasonModal" class="modal">
+    <div class="modal-content">
+      <h2>🔓 Unblock Site</h2>
+      <p class="modal-url" id="modalUrl"></p>
+      <p class="modal-duration" id="modalDuration"></p>
+      <textarea id="modalReasonInput" placeholder="Why do you need to unblock this site?" rows="3"></textarea>
+      <div class="modal-actions">
+        <button id="cancelBtn" class="btn-cancel">Cancel</button>
+        <button id="confirmUnblockBtn" class="btn-confirm" disabled>Unblock</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Duration Modal -->
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <h2>⏱️ Edit Duration</h2>
+      <p class="modal-url" id="editModalUrl"></p>
+      <div class="edit-duration-group">
+        <label>Unblock duration:</label>
+        <select id="editDurationSelect">
+          <option value="2">2 min</option>
+          <option value="5">5 min</option>
+          <option value="10">10 min</option>
+          <option value="15">15 min</option>
+          <option value="30">30 min</option>
+          <option value="60">1 hour</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button id="editCancelBtn" class="btn-cancel">Cancel</button>
+        <button id="editSaveBtn" class="btn-confirm">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+
+</html>

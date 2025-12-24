@@ -54,9 +54,23 @@ export class Database {
     extractHostname(url) {
         try {
             const urlObj = new URL(url.startsWith('http') ? url : `https://${url}`);
-            return urlObj.hostname.replace('www.', '');
+            return urlObj.hostname.replace('www.', '').toLowerCase();
         } catch {
             return url.replace('www.', '').toLowerCase();
         }
+    }
+
+    /**
+     * Returns an array of alternative domains for a given domain.
+     * Useful for sites that use multiple domains (like x.com and twitter.com).
+     */
+    getDomainAliases(domain) {
+        const aliasMap = {
+            'x.com': ['twitter.com'],
+            'twitter.com': ['x.com']
+        };
+
+        const cleanDomain = domain.toLowerCase().replace('www.', '');
+        return aliasMap[cleanDomain] || [];
     }
 }

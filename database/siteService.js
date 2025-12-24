@@ -184,15 +184,21 @@ export async function isBlocked(url) {
     const sites = await this.getBlockedSites();
     const currentHostname = this.extractHostname(url); // e.g., "old.reddit.com"
 
+    // Get aliases for the current domain (e.g., if on twitter.com, check x.com too)
+    const aliases = this.getDomainAliases(currentHostname);
+    const domainsToCheck = [currentHostname, ...aliases];
+
     return sites.some(site => {
         const blockedDomain = site.url.toLowerCase(); // e.g., "reddit.com"
 
-        // Match 1: Exact match
-        if (currentHostname === blockedDomain) return true;
+        return domainsToCheck.some(domain => {
+            // Match 1: Exact match
+            if (domain === blockedDomain) return true;
 
-        // Match 2: Subdomain match (checks if it ends with ".reddit.com")
-        if (currentHostname.endsWith('.' + blockedDomain)) return true;
+            // Match 2: Subdomain match (checks if it ends with ".reddit.com")
+            if (domain.endsWith('.' + blockedDomain)) return true;
 
-        return false;
+            return false;
+        });
     });
 }

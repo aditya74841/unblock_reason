@@ -16,11 +16,48 @@
             <p class="url-text">You tried to access:</p>
             <div class="blocked-url" id="blockedUrl">loading...</div>
 
-            <div class="unblock-section">
-                <h2>Want to unblock?</h2>
-                <p class="instruction">Enter a reason to continue. This will be saved for accountability.</p>
+            <!-- Stats Dashboard -->
+            <div class="stats-dashboard" id="statsDashboard">
+                <div class="stats-header">📊 Your This Week Stats</div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-value" id="statTotal">-</span>
+                        <span class="stat-label">Total Unblocks</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="statAvg">-</span>
+                        <span class="stat-label">Avg / Day</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="statStreak">-</span>
+                        <span class="stat-label">Day Streak</span>
+                    </div>
+                </div>
+                <div class="stat-most-unblocked" id="statMostUnblocked"></div>
+            </div>
 
-                <textarea id="reasonInput" placeholder="Why do you need to access this site right now?"
+            <!-- Step 1: Confirmation Question -->
+            <div class="confirm-section" id="confirmSection">
+                <h2>Is this really important?</h2>
+                <p class="instruction">Think twice before unblocking. Is accessing this site truly necessary right now?
+                </p>
+
+                <div class="confirm-buttons">
+                    <button id="noBtn" class="btn-no">
+                        ✕ No, Stay Focused
+                    </button>
+                    <button id="yesBtn" class="btn-yes">
+                        ✓ Yes, I Need It
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 2: Reason Input (Hidden by default) -->
+            <div class="unblock-section" id="unblockSection" style="display: none;">
+                <h2>Why do you need to access this?</h2>
+                <p class="instruction">Enter a reason for accountability. This will be saved.</p>
+
+                <textarea id="reasonInput" placeholder="Explain why you need to access this site right now..."
                     rows="3"></textarea>
 
                 <button id="unblockBtn" class="btn-unblock" disabled>
@@ -28,7 +65,7 @@
                 </button>
 
                 <button id="goBackBtn" class="btn-back">
-                    ← Go Back (Stay Focused)
+                    ← Changed my mind, Go Back
                 </button>
             </div>
         </div>

@@ -6,9 +6,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const addBtn = document.getElementById('addBtn');
     const sitesList = document.getElementById('sitesList');
     const historyList = document.getElementById('historyList');
+    const historyGroups = document.getElementById('historyGroups');
     const emptyMessage = document.getElementById('emptyMessage');
     const emptyHistoryMessage = document.getElementById('emptyHistoryMessage');
     const tabs = document.querySelectorAll('.tab');
+
+    // Stats Dashboard elements
+    const statTotal = document.getElementById('statTotal');
+    const statAvg = document.getElementById('statAvg');
+    const statStreak = document.getElementById('statStreak');
+    const statMostUnblocked = document.getElementById('statMostUnblocked');
 
     // Reason Modal elements
     const reasonModal = document.getElementById('reasonModal');
@@ -25,8 +32,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const editCancelBtn = document.getElementById('editCancelBtn');
     const editSaveBtn = document.getElementById('editSaveBtn');
 
+    // Reflection Modal elements
+    const reflectionModal = document.getElementById('reflectionModal');
+    const reflectionMessage = document.getElementById('reflectionMessage');
+    const reflectionOkBtn = document.getElementById('reflectionOkBtn');
+
+    // Suggestion elements
+    const quickBlockSuggestion = document.getElementById('quickBlockSuggestion');
+    const suggestionBtn = document.getElementById('suggestionBtn');
+
     let currentUnblockUrl = null;
     let currentEditUrl = null;
+    let reflectionShownThisSession = false;
+
+    // Initialize quick block suggestion
+    initQuickBlock();
 
     // Tab switching
     tabs.forEach(tab => {
@@ -57,6 +77,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const url = urlInput.value.trim();
         if (!url) return;
 
+        await performAddSite(url);
+    }
+
+    async function performAddSite(url) {
         const cleanUrl = url.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0];
         const durationValue = durationSelect.value;
         const duration = parseInt(durationValue, 10);
@@ -71,9 +95,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (response.success) {
             urlInput.value = '';
+            quickBlockSuggestion.style.display = 'none';
             loadSites();
         } else {
             alert('Site already exists or error occurred');
+        }
+    }
+
+    async function initQuickBlock() {
+        try {
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            if (!tab?.url) return;
+
+            const url = new URL(tab.url);
+
+            // Don't suggest extension pages, chrome internal pages, or blank pages
+            if (url.protocol.startsWith('chrome') || url.protocol === 'about:' || !url.hostname) {
+                return;
+            }
+
+            const cleanDomain = url.hostname.replace('www.', '');
+
+            // Check if site is already in the list
+            const sites = await chrome.runtime.sendMessage({ action: 'getAllSites' });
+            const alreadyExists = sites.some(s => s.url === cleanDomain);
+
+            if (!alreadyExists) {
+                suggestionBtn.textContent = `Block ${cleanDomain}?`;
+                quickBlockSuggestion.style.display = 'flex';
+
+                suggestionBtn.onclick = () => {
+                    urlInput.value = cleanDomain;
+                    performAddSite(cleanDomain);
+                };
+            }
+        } catch (error) {
+            console.error('Error initializing quick block:', error);
         }
     }
 
@@ -290,30 +347,172 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     async function loadHistory() {
-        const history = await chrome.runtime.sendMessage({ action: 'getUnblockHistory' });
+        const [history, stats] = await Promise.all([
+            chrome.runtime.sendMessage({ action: 'getUnblockHistory' }),
+            chrome.runtime.sendMessage({ action: 'getHistoryStats' })
+        ]);
 
-        historyList.innerHTML = '';
+        historyGroups.innerHTML = '';
 
         if (!history || history.length === 0) {
             emptyHistoryMessage.style.display = 'block';
+            document.getElementById('statsDashboard').style.display = 'none';
             return;
         }
 
         emptyHistoryMessage.style.display = 'none';
+        document.getElementById('statsDashboard').style.display = 'block';
 
-        history.forEach(entry => {
-            const li = document.createElement('li');
-            const date = new Date(entry.timestamp);
-            const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+        // Update Stats Dashboard
+        statTotal.textContent = stats.totalThisWeek;
+        statAvg.textContent = stats.avgPerDay;
+        statStreak.textContent = stats.streak > 0 ? `${stats.streak}🔥` : '0';
 
-            li.innerHTML = `
-                <div class="history-url">🔓 ${entry.url}</div>
-                <div class="history-reason">"${entry.reason}"</div>
-                <div class="history-time">${formattedDate}</div>
+        if (stats.mostUnblocked.url && stats.mostUnblocked.count > 1) {
+            statMostUnblocked.innerHTML = `⚠️ Most unblocked: <strong>${stats.mostUnblocked.url}</strong> (${stats.mostUnblocked.count}x)`;
+        } else {
+            statMostUnblocked.innerHTML = '';
+        }
+
+        // Show reflection modal if 5+ unblocks today
+        if (stats.totalToday >= 5 && !reflectionShownThisSession) {
+            reflectionShownThisSession = true;
+            reflectionMessage.textContent = `You've unblocked ${stats.totalToday} sites today. Are you staying focused on what matters?`;
+            reflectionModal.classList.add('active');
+        }
+
+        // Group history by date
+        const groups = groupByDate(history);
+
+        // Count per URL for repeat detection
+        const urlCounts = {};
+        history.forEach(e => {
+            urlCounts[e.url] = (urlCounts[e.url] || 0) + 1;
+        });
+
+        // Render grouped history
+        Object.entries(groups).forEach(([dateLabel, entries]) => {
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'history-date-group';
+
+            const headerHtml = `
+                <div class="date-header">
+                    <span class="date-icon">📅</span>
+                    <span>${dateLabel}</span>
+                    <span class="unblock-count">${entries.length} unblock${entries.length > 1 ? 's' : ''}</span>
+                </div>
             `;
-            historyList.appendChild(li);
+
+            let entriesHtml = '';
+            entries.forEach(entry => {
+                const time = new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const reasonClass = classifyReason(entry.reason);
+                const isRepeat = urlCounts[entry.url] > 2;
+
+                let badges = '';
+                if (isRepeat) {
+                    badges += `<span class="badge badge-repeat">🔥 ${urlCounts[entry.url]}x</span>`;
+                }
+                if (entry.wasAutoReblocked === true) {
+                    badges += '<span class="badge badge-auto">⏱️ Auto</span>';
+                } else if (entry.wasAutoReblocked === false) {
+                    badges += '<span class="badge badge-manual">✋ Manual</span>';
+                }
+
+                entriesHtml += `
+                    <div class="history-entry ${reasonClass}">
+                        <div class="history-entry-header">
+                            <span class="history-entry-url">🔓 ${entry.url}</span>
+                            <div class="history-entry-badges">${badges}</div>
+                        </div>
+                        <div class="history-entry-reason">"${entry.reason}"</div>
+                        <div class="history-entry-meta">
+                            <span>${time}</span>
+                            ${entry.unblockDuration ? `<span>⏱️ ${entry.unblockDuration} min allowed</span>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            groupDiv.innerHTML = headerHtml + entriesHtml;
+            historyGroups.appendChild(groupDiv);
         });
     }
+
+    // Group entries by date (Today, Yesterday, This Week, Older)
+    function groupByDate(entries) {
+        const groups = {};
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+        const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+        entries.forEach(entry => {
+            const entryDate = new Date(entry.timestamp);
+            const entryDay = new Date(entryDate.getFullYear(), entryDate.getMonth(), entryDate.getDate());
+
+            let label;
+            if (entryDay.getTime() === today.getTime()) {
+                label = 'Today';
+            } else if (entryDay.getTime() === yesterday.getTime()) {
+                label = 'Yesterday';
+            } else if (entryDay >= weekAgo) {
+                label = 'This Week';
+            } else {
+                label = 'Older';
+            }
+
+            if (!groups[label]) {
+                groups[label] = [];
+            }
+            groups[label].push(entry);
+        });
+
+        // Sort within each group by timestamp (newest first)
+        Object.values(groups).forEach(group => {
+            group.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        });
+
+        // Return groups in order
+        const orderedGroups = {};
+        ['Today', 'Yesterday', 'This Week', 'Older'].forEach(label => {
+            if (groups[label]) {
+                orderedGroups[label] = groups[label];
+            }
+        });
+
+        return orderedGroups;
+    }
+
+    // Classify reason quality (green/yellow/red)
+    function classifyReason(reason) {
+        const r = reason.toLowerCase();
+
+        // Productive keywords
+        const productiveKeywords = ['work', 'project', 'meeting', 'urgent', 'deadline', 'client', 'research', 'tutorial', 'learn', 'study'];
+        if (productiveKeywords.some(kw => r.includes(kw))) {
+            return 'reason-productive';
+        }
+
+        // Weak/vague reasons
+        const weakKeywords = ['bored', 'just', 'quick', 'check', 'nothing', 'idk', 'why not', 'break'];
+        if (weakKeywords.some(kw => r.includes(kw)) || r.length < 10) {
+            return 'reason-weak';
+        }
+
+        return 'reason-neutral';
+    }
+
+    // Reflection modal handler
+    reflectionOkBtn.addEventListener('click', () => {
+        reflectionModal.classList.remove('active');
+    });
+
+    reflectionModal.addEventListener('click', (e) => {
+        if (e.target === reflectionModal) {
+            reflectionModal.classList.remove('active');
+        }
+    });
 
     // Initial load
     loadSites();
@@ -321,3 +520,4 @@ document.addEventListener('DOMContentLoaded', () => {
     // Refresh every 30 seconds to update timers
     setInterval(loadSites, 30000);
 });
+

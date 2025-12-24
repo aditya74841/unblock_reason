@@ -2,6 +2,10 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     const blockedUrlEl = document.getElementById('blockedUrl');
+    const confirmSection = document.getElementById('confirmSection');
+    const unblockSection = document.getElementById('unblockSection');
+    const noBtn = document.getElementById('noBtn');
+    const yesBtn = document.getElementById('yesBtn');
     const reasonInput = document.getElementById('reasonInput');
     const unblockBtn = document.getElementById('unblockBtn');
     const goBackBtn = document.getElementById('goBackBtn');
@@ -20,6 +24,60 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     blockedUrlEl.textContent = displayUrl;
+
+    // Stats Dashboard elements
+    const statsDashboard = document.getElementById('statsDashboard');
+    const statTotal = document.getElementById('statTotal');
+    const statAvg = document.getElementById('statAvg');
+    const statStreak = document.getElementById('statStreak');
+    const statMostUnblocked = document.getElementById('statMostUnblocked');
+
+    // Load and display stats
+    async function loadStats() {
+        try {
+            const stats = await chrome.runtime.sendMessage({ action: 'getHistoryStats' });
+
+            if (stats) {
+                statTotal.textContent = stats.totalThisWeek;
+                statAvg.textContent = stats.avgPerDay;
+                statStreak.textContent = stats.streak > 0 ? `${stats.streak}🔥` : '0';
+
+                if (stats.mostUnblocked.url && stats.mostUnblocked.count > 1) {
+                    statMostUnblocked.innerHTML = `⚠️ Most unblocked: <strong>${stats.mostUnblocked.url}</strong> (${stats.mostUnblocked.count}x)`;
+                } else {
+                    statMostUnblocked.innerHTML = '';
+                }
+
+                // Hide dashboard if no history
+                if (stats.totalThisWeek === 0) {
+                    statsDashboard.style.display = 'none';
+                }
+            }
+        } catch (error) {
+            console.error('Error loading stats:', error);
+            statsDashboard.style.display = 'none';
+        }
+    }
+
+    // Load stats on page load
+    loadStats();
+
+    // No button - go back to previous page
+    noBtn.addEventListener('click', () => {
+        if (window.history.length > 1) {
+            window.history.back();
+        } else {
+            window.close();
+        }
+    });
+
+    // Yes button - show reason input section
+    yesBtn.addEventListener('click', () => {
+        confirmSection.style.display = 'none';
+        unblockSection.style.display = 'block';
+        unblockSection.classList.add('fade-in');
+        reasonInput.focus();
+    });
 
     // Enable/disable unblock button based on reason input
     reasonInput.addEventListener('input', () => {
@@ -54,15 +112,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Go back button
+    // Go back button (in reason section)
     goBackBtn.addEventListener('click', () => {
-        if (window.history.length > 1) {
-            window.history.back();
-        } else {
-            window.close();
-        }
+        // Go back to confirmation step
+        unblockSection.style.display = 'none';
+        confirmSection.style.display = 'block';
+        reasonInput.value = '';
+        unblockBtn.disabled = true;
     });
-
-    // Focus on the reason input
-    reasonInput.focus();
 });

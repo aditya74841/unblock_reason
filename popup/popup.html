@@ -16,6 +16,10 @@
     </header>
 
     <section class="add-site">
+      <div id="quickBlockSuggestion" class="quick-block-suggestion" style="display: none;">
+        <span class="suggestion-label">Suggested:</span>
+        <button id="suggestionBtn" class="suggestion-btn"></button>
+      </div>
       <div class="input-row">
         <input type="text" id="urlInput" placeholder="Enter domain (e.g., youtube.com)">
       </div>
@@ -48,9 +52,44 @@
     </section>
 
     <section id="history-tab" class="tab-content">
-      <ul id="historyList" class="history-list"></ul>
+      <!-- Stats Dashboard -->
+      <div id="statsDashboard" class="stats-dashboard">
+        <div class="stats-header">📊 This Week</div>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <span class="stat-value" id="statTotal">0</span>
+            <span class="stat-label">Total Unblocks</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" id="statAvg">0</span>
+            <span class="stat-label">Avg / Day</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" id="statStreak">0</span>
+            <span class="stat-label">Day Streak</span>
+          </div>
+        </div>
+        <div class="stat-most-unblocked" id="statMostUnblocked"></div>
+      </div>
+
+      <!-- History List (grouped by date) -->
+      <div id="historyGroups" class="history-groups"></div>
+      <ul id="historyList" class="history-list" style="display:none;"></ul>
       <p id="emptyHistoryMessage" class="empty-message">No unblock history</p>
     </section>
+  </div>
+
+  <!-- Reflection Modal -->
+  <div id="reflectionModal" class="modal">
+    <div class="modal-content reflection-content">
+      <div class="reflection-icon">🤔</div>
+      <h2>Time to Reflect</h2>
+      <p class="reflection-message" id="reflectionMessage">You've unblocked 5 sites today. Are you staying focused on
+        what matters?</p>
+      <div class="modal-actions">
+        <button id="reflectionOkBtn" class="btn-confirm">I'll Stay Focused</button>
+      </div>
+    </div>
   </div>
 
   <!-- Reason Modal -->
